@@ -9,13 +9,13 @@ module ring_buffer_tb;
   // --- Input assertions for integration tests ---
   property p_no_overflow;
     @(posedge clk) disable iff (!rst_n || clear)
-    (dut.wr_en && dut.full) |-> !($realtime > 0)
+    (wr_en && dut.full) |-> !($realtime > 0)
   endproperty
   assert property (p_no_overflow) else $error("TIME:%t | ERROR: FIFO OVERFLOW", $realtime);
 
   property p_no_underflow;
     @(posedge clk) disable iff (!rst_n || clear)
-    (dut.rd_en && dut.empty) |-> !($realtime > 0)
+    (rd_en && dut.empty) |-> !($realtime > 0)
   endproperty
   assert property (p_no_underflow) else $error("TIME:%t | ERROR: FIFO UNDERFLOW", $realtime);
 
@@ -53,43 +53,36 @@ module ring_buffer_tb;
 
     // Write until full
     repeat (LENGTH) begin
-      @(posedge clk);
+      @(negedge clk);
       if (!full) begin
-        wr_en = 1;
-        in = in + 1;
+        wr_en <= 1;
+        in <= in + 1;
+      end else begin
+        wr_en <= 0;
       end
     end
-    @(posedge clk)
-    wr_en = 0;
+    @(posedge clk) wr_en <= 0;
 
     // Read until empty
     repeat (LENGTH) begin
-      @(posedge clk);
-      if (!empty) begin
-        rd_en = 1;
-      end
+      @(negedge clk) rd_en <= !empty;
     end
-    @(posedge clk)
-    rd_en = 0;
+    @(posedge clk) rd_en <= 0;
 
     // Simultaneous read/write
     repeat (LENGTH) begin
-      @(posedge clk);
-      rd_en = 1;
-      wr_en = 1;
-      in = in + 1;
+      @(negedge clk);
+      rd_en <= !empty;
+      wr_en <= 1;
+      in <= in + 1;
     end
     @(posedge clk);
-    rd_en = 0;
-    wr_en = 0;
+    rd_en <= 0;
+    wr_en <= 0;
 
-    #10
-    clear = 1;
-    #10
-    clear = 0;
-
-    #50
-    $finish;
+    #10 clear = 1;
+    #10 clear = 0;
+    #50 $finish;
   end
 
 endmodule
