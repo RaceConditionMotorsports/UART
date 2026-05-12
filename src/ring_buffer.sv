@@ -64,12 +64,15 @@ module ring_buffer
       rd_ptr  <= '0;
       count   <= '0;
     end else begin
-      if (wr_en && !full) begin
+      if (wr_en && !full && rd_en && !empty) begin
+        buffer[wr_ptr]  <= in;
+        wr_ptr          <= wr_ptr + 1'b1;
+        rd_ptr          <= rd_ptr + 1'b1;
+      end else if (wr_en && !full) begin
         buffer[wr_ptr]  <= in;
         wr_ptr          <= wr_ptr + 1'b1;
         count           <= count  + 1'b1;
-      end
-      if (rd_en && !empty) begin
+      end else if (rd_en && !empty) begin
         rd_ptr          <= rd_ptr + 1'b1;
         count           <= count  - 1'b1;
       end
