@@ -51,12 +51,10 @@ module ring_buffer
 
   assign full   = count[PTR_WIDTH];
   assign empty  = (count == '0);
-  assign out    = buffer[rd_ptr];
 
   always_ff @(posedge clk) begin
-    if (wr_en && !full) begin
-      buffer[wr_ptr] <= in;
-    end
+    if (wr_en && !full) buffer[wr_ptr] <= in;
+    if (rd_en && !empty) out <= buffer[rd_ptr];
   end
 
   always_ff @(posedge clk) begin
