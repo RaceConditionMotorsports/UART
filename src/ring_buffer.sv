@@ -69,7 +69,7 @@ module ring_buffer
         if (rd_en && !empty)  rd_ptr <= rd_ptr + 1'b1;
       unique case ({ (wr_en && !full), (rd_en && !empty) })
         2'b10: count <= count + 1'b1;
-        2'b01: count <= count + 1'b1;
+        2'b01: count <= count - 1'b1;
         default: ; // No change for simultaneous r/w
       endcase
     end
