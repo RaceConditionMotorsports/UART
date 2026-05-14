@@ -35,6 +35,7 @@ uart_rx_1frame dut(
     .en (enable),
     .parity_yes (parity_yes),
     .stop_2b (stop_2b),
+    .frame_out (frame),
     .new_frame (new_frame),
     .error (error)
 );
