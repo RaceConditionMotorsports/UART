@@ -100,8 +100,7 @@ end else begin
             //nothing happens in error. We just lay dormant until the next reset.
         end
     endcase
+end //if (!reset_n)
 end //(posedge clock or negedge reset_n)
-
-
 
 endmodule //UART_RX_1frame
