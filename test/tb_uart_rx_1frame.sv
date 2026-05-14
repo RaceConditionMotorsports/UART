@@ -43,15 +43,17 @@ uart_rx_1frame dut(
 initial begin
    clock <= 0;
    reset_n <= 1;
+   #1000
+   $finish;
 end
     
 //simulation
-always begin
+always begin //driving clock
     #5
     clock = ~clock;
 end
 
-always begin
+always begin //driving reset
     #200 
     reset_n = ~reset_n;
 end
