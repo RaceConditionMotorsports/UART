@@ -53,21 +53,24 @@ typedef enum { //one-hot enumeration (source: internet)
 
 possible_states current_state;
 logic prev_rx, parity_bit;
+logic [7:0] next_bit_timer, bits_received;
 
 always @ (posedge clock or negedge reset_n) begin
 
 if(!reset_n) begin
     error <= 1'b0;
     new_frame <= 1'b0;
-    frame_out [7:0] <= 8'h00;
+    frame_out [7:0] <= 8'h0F;
     current_state <= WAITING;
     prev_rx = 1'b0;
     parity_bit = 1'b0;
-    //write max value to 
-    //write 0 to bits_receiver_count
+    next_bit_timer = 8'hFF;
+    bits_received = 8'd0;
 end else if (!en) begin
     //do we even need enable if we have reset?
 end else begin
+    next_bit_timer = (next_bit_timer == 0) ? 0: next_bit_timer-1; //blocking because it is critical we decrement clock
+    frame_out = (frame_out == 0) ? 0: frame_out-1; //DEBUG ONLY
     case (current_state)
         WAITING: begin
             if (prev_rx == 1 && rx == 1) begin
