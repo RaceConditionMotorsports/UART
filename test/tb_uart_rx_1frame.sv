@@ -31,7 +31,7 @@ logic [7:0] frame;
 uart_rx_1frame dut(
     .reset_n (reset_n),
     .clock (clock),
-    .rx (RX),
+    .rx (rx),
     .en (enable),
     .parity_yes (parity_yes),
     .stop_2b (stop_2b),
@@ -44,19 +44,35 @@ uart_rx_1frame dut(
 initial begin
    clock <= 0;
    reset_n <= 1;
-   #1000
+   enable <= 1;
+   rx <=0;
+   parity_yes <= 1;
+   stop_2b <= 0;
+   #2500ns
    $finish;
 end
     
 //simulation
 always begin //driving clock
-    #5
+    #1
     clock = ~clock;
 end
 
-always begin //driving reset
-    #200 
-    reset_n = ~reset_n;
+always begin //driving reset and parity bit
+    #10 
+    reset_n = 1'b0;
+    #80
+    reset_n = 1'b1;
+    parity_yes = ~parity_yes;
+    #700;
+end
+
+always begin //driving rx
+    #32 //1cc of BAUD RATE 
+    rx = 1'b0;
+    #64
+    rx = 1'b1;
 end
 
 endmodule
+
