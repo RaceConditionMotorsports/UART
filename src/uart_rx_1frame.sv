@@ -27,9 +27,9 @@ module uart_rx_1frame(
     input logic en,   //(ToDo) 0 => module disabled, 1 => module all healthy
     input logic parity_yes, //(ToDo) 0 => no parity bit, 1 => yes parity bit
     input logic stop_2b, //(ToDo) 0 => 1 stop bit, 1 => 2 stop bits
-    output logic [7:0] frame_out, //(ToDo) displays data from most recently received valid frame
-    output logic new_frame, //(ToDo) switches to 1 and then to 0 when new data is on FRAME_lower
-    output logic error      //(ToDo) switches to 1 after invalid frame is receiver until a new start byte
+    output logic [7:0] frame_out, //displays data from most recently received valid frame
+    output logic new_frame, //1 when there is valid frame to be read; 0 otherwise.
+    output logic error      //switches to 1 after invalid frame is receiver until a new start byte
     );
     
 //put your logic here
@@ -52,20 +52,21 @@ typedef enum { //one-hot enumeration (source: internet)
 } possible_states;
 
 possible_states current_state;
-logic prev_rx, parity_bit;
+logic prev_rx, parity_bit, stop_bit_received;
 logic [7:0] next_bit_timer, bits_received;
 
 always @ (posedge clock or negedge reset_n) begin
 
 if(!reset_n) begin
-    error <= 1'b0;
+    current_state <= WAITING;
+    prev_rx <= 1'b0;
+    parity_bit <= 1'b0;
+    next_bit_timer <= 8'hFF;
+    bits_received <= 8'd0;
+    stop_bit_received <= 1'b0;
     new_frame <= 1'b0;
     frame_out [7:0] <= 8'h0;
-    current_state <= WAITING;
-    prev_rx = 1'b0;
-    parity_bit = 1'b0;
-    next_bit_timer = 8'hFF;
-    bits_received = 8'd0;
+    error <= 1'b0;
 end else if (!en) begin
     //do we even need enable if we have reset?
 end else begin
@@ -74,9 +75,13 @@ end else begin
             if (prev_rx == 1 && rx == 0) begin
                 next_bit_timer <= 8'd24;//setup next_bit_timer_n to 1,5 clock cycle of the rx
                 current_state <= READING_DATA;//change state to reading data
-                prev_rx <= 1;
-                new_frame = 1'b0; //blocking statment because we don't want to clear frame_out while still indicating it's valid.
-                frame_out = 8'd0;
+                parity_bit <= 1'b0;
+                prev_rx <= 0;
+                bits_received <= 8'd0;
+                stop_bit_received <= 1'b0;
+                new_frame <= 1'b0; //blocking statment because we don't want to clear frame_out while still indicating it's valid.
+                frame_out <= 8'd0;
+
             end else begin
                 prev_rx <= rx;//save rx as prev_rx
             end
@@ -87,6 +92,9 @@ end else begin
                 frame_out [0] = rx;
                 next_bit_timer <= 8'd16;// 2. set up next_bit_timer_n to 1 cc of the rx 
                 bits_received += 1;// 3. increment bits received counter;
+                if ( rx ) begin 
+                    parity_bit <= ~parity_bit; 
+                end
                 if (bits_received == 8) begin
                     current_state <= (parity_yes) ? READING_PARITY : READING_STOP;
                 end
@@ -96,23 +104,26 @@ end else begin
         READING_PARITY: begin
             if (next_bit_timer == 0) begin
                 next_bit_timer <= 8'd16;// 1. set up next_bit_timer_n to 1 cc of the rx  
-                // 2. read data bit; verify that parity is correct; throw error if necessary. (Thought: is it better to calculate parity with real time? it is just 1 bit after all)            
-                current_state <= READING_STOP; 
+                current_state <= (rx == parity_bit) ? READING_STOP : ERROR; 
             end            
         end
         READING_STOP: begin
             if (next_bit_timer == 0) begin
                 if (!rx) begin
                     current_state <= ERROR;// 1. if bit is 0, go to error
-                end else begin
+                    error <= 1'b1; 
+                end else if ( !stop_2b )begin
                     current_state <= WAITING;// 2. if bit is 1, set new_frame to 1 and set state to WAITING
                     new_frame <= 1'b1;
+                end else begin
+                    next_bit_timer <= 8'd16;
                 end
             end
-            next_bit_timer = (next_bit_timer == 0) ? 0: next_bit_timer-1;//else: decrement timer
+            next_bit_timer <= (next_bit_timer == 0) ? 0: next_bit_timer-1;//else: decrement timer
         end
         ERROR: begin
-            //nothing happens in error. We just lay dormant until the next reset.
+            new_frame <= 1'b0;   //
+            error <= 1'b1;      //nothing happens in error. We just lay dormant until the next reset.
         end
     endcase
 end //if (!reset_n)

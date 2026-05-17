@@ -29,8 +29,8 @@ logic [7:0] frame;
 * Device under test - UART_RX_1frame
 */
 uart_rx_1frame dut(
-    .reset_n (reset_n),
     .clock (clock),
+    .reset_n (reset_n),
     .rx (rx),
     .en (enable),
     .parity_yes (parity_yes),
@@ -48,7 +48,7 @@ initial begin
    rx <=0;
    parity_yes <= 1;
    stop_2b <= 0;
-   #2500ns
+   #5000
    $finish;
 end
     
@@ -64,15 +64,53 @@ always begin //driving reset and parity bit
     #80
     reset_n = 1'b1;
     parity_yes = ~parity_yes;
-    #700;
+    #1000;
+    #10 
+    reset_n = 1'b0;
+    #80
+    reset_n = 1'b1;
+    parity_yes = ~parity_yes;
+    stop_2b = ~stop_2b;
+    #1000;
 end
 
 always begin //driving rx
-    #32 //1cc of BAUD RATE 
-    rx = 1'b0;
-    #64
-    rx = 1'b1;
+    #96
+    rx = 1;
+    #32
+    rx = 0; //start of frame: 
+    #32
+    for (int i = 0; i < 8; i++) begin //data bits
+        rx = ~rx; //Find a trick to write 8-bit sequence with 1 line
+        #32;   
+    end
+    rx = 0; //parity
+    #32
+    rx = 1; //stop bit
+    #32;
 end
 
 endmodule
+
+//Create a task: send UART Message with parity and 1 stop bit
+task frame_tx_p1_s1(
+    output tx);
+    tx = 1;
+    #32
+    tx = 0; //start of frame
+    #32
+    for (int i = 0; i < 8; i++) begin //data bits
+        tx = ~tx; //Find a trick to write 8-bit sequence with 1 line
+        #32;   
+    end
+    tx = 0; //parity
+    #32
+    tx = 1; //stop bit
+    #32;
+endtask
+//Create a task: send UART Message with parity and 2 stop bits
+
+//Create a task: send UART Message with no parity and 1 stop bit
+
+//Create a task: send UART Message with no parity and 2 stop bits
 
