@@ -21,15 +21,15 @@
 
 
 module uart_rx_1frame(
-    input logic clock, //(ToDo) receives clock, preferably 16x115200 = 18.432MHz
-    input logic reset_n,  //(ToDo) receives clock 
-    input logic rx,   //(ToDo) serial data input
+    input logic clock, // receives clock, preferably 16x115200 = 18.432MHz
+    input logic reset_n,  // 0 => all output held at zero; 1 => normal performance 
+    input logic rx,   // serial data input
     input logic en,   //(ToDo) 0 => module disabled, 1 => module all healthy
-    input logic parity_yes, //(ToDo) 0 => no parity bit, 1 => yes parity bit
-    input logic stop_2b, //(ToDo) 0 => 1 stop bit, 1 => 2 stop bits
-    output logic [7:0] frame_out, //displays data from most recently received valid frame
-    output logic new_frame, //1 when there is valid frame to be read; 0 otherwise.
-    output logic error      //switches to 1 after invalid frame is receiver until a new start byte
+    input logic parity_yes, // 0 => no parity bit, 1 => yes parity bit
+    input logic stop_2b, // 0 => 1 stop bit, 1 => 2 stop bits
+    output logic [7:0] frame_out, // displays data from most recently received valid frame
+    output logic new_frame, //1 => there is valid frame to be read; 0 otherwise.
+    output logic error //switches to 1 after invalid frame until reset. (ToDo: maybe change to until a new start byte?
     );
     
 //put your logic here
@@ -105,7 +105,8 @@ end else begin
             if (next_bit_timer == 0) begin
                 next_bit_timer <= 8'd16;// 1. set up next_bit_timer_n to 1 cc of the rx  
                 current_state <= (rx == parity_bit) ? READING_STOP : ERROR; 
-            end            
+            end   
+            next_bit_timer = (next_bit_timer == 0) ? 0: next_bit_timer-1;        
         end
         READING_STOP: begin
             if (next_bit_timer == 0) begin

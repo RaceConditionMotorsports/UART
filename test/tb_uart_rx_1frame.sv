@@ -81,10 +81,10 @@ always begin //driving rx
     rx = 0; //start of frame: 
     #32
     for (int i = 0; i < 8; i++) begin //data bits
-        rx = ~rx; //Find a trick to write 8-bit sequence with 1 line
+        rx = ~rx; //(ToDo) Find a trick to write 8-bit sequence with 1 line
         #32;   
     end
-    rx = 0; //parity
+    rx = 1; //parity
     #32
     rx = 1; //stop bit
     #32;
@@ -92,25 +92,11 @@ end
 
 endmodule
 
-//Create a task: send UART Message with parity and 1 stop bit
-task frame_tx_p1_s1(
-    output tx);
-    tx = 1;
-    #32
-    tx = 0; //start of frame
-    #32
-    for (int i = 0; i < 8; i++) begin //data bits
-        tx = ~tx; //Find a trick to write 8-bit sequence with 1 line
-        #32;   
-    end
-    tx = 0; //parity
-    #32
-    tx = 1; //stop bit
-    #32;
-endtask
-//Create a task: send UART Message with parity and 2 stop bits
+//(ToDo) Create a task: send UART Message with parity and 1 stop bit
 
-//Create a task: send UART Message with no parity and 1 stop bit
+//(ToDo) Create a task: send UART Message with parity and 2 stop bits
 
-//Create a task: send UART Message with no parity and 2 stop bits
+//(ToDo) Create a task: send UART Message with no parity and 1 stop bit
+
+//(ToDo) Create a task: send UART Message with no parity and 2 stop bits
 
