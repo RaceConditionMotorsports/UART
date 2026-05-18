@@ -86,8 +86,8 @@ always begin //driving rx
     end
     rx = 1; //parity
     #32
-    rx = 1; //stop bit
-    #32;
+    rx = 1; //2 stop bits
+    #64;
 end
 
 endmodule

@@ -55,7 +55,7 @@ possible_states current_state;
 logic prev_rx, parity_bit, stop_bit_received;
 logic [7:0] next_bit_timer, bits_received;
 
-always @ (posedge clock or negedge reset_n) begin
+always_ff @ (posedge clock or negedge reset_n) begin
 
 if(!reset_n) begin
     current_state <= WAITING;
@@ -72,59 +72,68 @@ end else if (!en) begin
 end else begin
     case (current_state)
         WAITING: begin
-            if (prev_rx == 1 && rx == 0) begin
-                next_bit_timer <= 8'd24;//setup next_bit_timer_n to 1,5 clock cycle of the rx
-                current_state <= READING_DATA;//change state to reading data
+            if (prev_rx == 1 && rx == 0) begin //trigger condition for start of frame
+                next_bit_timer <= 8'd24 - 1;
+                current_state <= READING_DATA;
                 parity_bit <= 1'b0;
                 prev_rx <= 0;
                 bits_received <= 8'd0;
                 stop_bit_received <= 1'b0;
-                new_frame <= 1'b0; //blocking statment because we don't want to clear frame_out while still indicating it's valid.
+                new_frame <= 1'b0;
                 frame_out <= 8'd0;
 
             end else begin
-                prev_rx <= rx;//save rx as prev_rx
+                prev_rx <= rx;
             end
         end
         READING_DATA: begin
-            if (next_bit_timer == 0) begin //if next_bit_timer_n is 00000:
-                frame_out = (frame_out << 1);// 1. push data bit to frame_out
-                frame_out [0] = rx;
-                next_bit_timer <= 8'd16;// 2. set up next_bit_timer_n to 1 cc of the rx 
-                bits_received += 1;// 3. increment bits received counter;
-                if ( rx ) begin 
+            if (next_bit_timer == 0) begin
+                frame_out <= (frame_out << 1);  //1. push data bit to frame_out
+                frame_out [0] <= rx;
+                next_bit_timer <= 8'd16 -1;        //2. set up next_bit_timer_n to 1 cc of the rx 
+                bits_received <= bits_received + 1;  //3. increment bits received counter;
+                if ( rx ) begin
                     parity_bit <= ~parity_bit; 
                 end
                 if (bits_received == 8) begin
                     current_state <= (parity_yes) ? READING_PARITY : READING_STOP;
                 end
+            end else begin
+                next_bit_timer <= next_bit_timer-1; //decrement timer
             end
-            next_bit_timer = (next_bit_timer == 0) ? 0: next_bit_timer-1; //else: decrement timer
         end
         READING_PARITY: begin
             if (next_bit_timer == 0) begin
-                next_bit_timer <= 8'd16;// 1. set up next_bit_timer_n to 1 cc of the rx  
+                next_bit_timer <= 8'd16 - 1;// 1. set up next_bit_timer_n to 1 cc of the rx  
                 current_state <= (rx == parity_bit) ? READING_STOP : ERROR; 
-            end   
-            next_bit_timer = (next_bit_timer == 0) ? 0: next_bit_timer-1;        
+            end else begin
+                next_bit_timer <= next_bit_timer-1;
+            end  
         end
         READING_STOP: begin
-            if (next_bit_timer == 0) begin
-                if (!rx) begin
-                    current_state <= ERROR;// 1. if bit is 0, go to error
+            if (0 != next_bit_timer) begin
+                next_bit_timer <= next_bit_timer-1;
+            end else begin
+                if (!rx) begin //if stop bit is 0, go to error
+                    current_state <= ERROR;
                     error <= 1'b1; 
                 end else if ( !stop_2b )begin
-                    current_state <= WAITING;// 2. if bit is 1, set new_frame to 1 and set state to WAITING
+                    current_state <= WAITING;
                     new_frame <= 1'b1;
                 end else begin
-                    next_bit_timer <= 8'd16;
+                    if (stop_bit_received) begin
+                        current_state <= WAITING;
+                        new_frame <= 1'b1;                
+                    end else begin
+                        stop_bit_received <= 1'b1;;
+                        next_bit_timer <= 8'd16 - 1;
+                    end
                 end
             end
-            next_bit_timer <= (next_bit_timer == 0) ? 0: next_bit_timer-1;//else: decrement timer
         end
         ERROR: begin
-            new_frame <= 1'b0;   //
-            error <= 1'b1;      //nothing happens in error. We just lay dormant until the next reset.
+            new_frame <= 1'b0;
+            error <= 1'b1;  //nothing happens in error. We just lay dormant until the next reset.
         end
     endcase
 end //if (!reset_n)
