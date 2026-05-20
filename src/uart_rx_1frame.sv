@@ -63,7 +63,7 @@ if(!reset_n) begin
     prev_rx <= 1'b0;
     parity_bit <= 1'b0;
     next_bit_timer <= 8'hFF;
-    bits_received <= 8'd0;
+    bits_received <= 4'd0;
     stop_bit_received <= 1'b0;
     new_frame <= 1'b0;
     frame_out [7:0] <= 8'h0;
@@ -78,7 +78,7 @@ end else begin
                 current_state <= READING_DATA;
                 parity_bit <= 1'b0;
                 prev_rx <= 0;
-                bits_received <= 8'd0;
+                bits_received <= 4'd0;
                 stop_bit_received <= 1'b0;
                 new_frame <= 1'b0;
                 frame_out <= 8'd0;
@@ -96,7 +96,7 @@ end else begin
                 if ( rx ) begin
                     parity_bit <= ~parity_bit; 
                 end
-                if (bits_received == 8) begin
+                if (bits_received == 4'd8) begin
                     current_state <= (parity_yes) ? READING_PARITY : READING_STOP;
                 end
             end else begin
