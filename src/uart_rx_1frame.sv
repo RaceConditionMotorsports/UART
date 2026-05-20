@@ -53,7 +53,8 @@ typedef enum { //one-hot enumeration (source: internet)
 
 possible_states current_state;
 logic prev_rx, parity_bit, stop_bit_received;
-logic [7:0] next_bit_timer, bits_received;
+logic [7:0] next_bit_timer;
+logic [3:0] bits_received;
 
 always_ff @ (posedge clock or negedge reset_n) begin
 
